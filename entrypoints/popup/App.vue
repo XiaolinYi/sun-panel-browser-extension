@@ -68,7 +68,7 @@ const appName = browser.runtime.getManifest().name
       </div>
 
       <div class="bg-[white] rounded-t-2xl shadow-xl border">
-        <NScrollbar style="max-height: 500px;padding:0 20px">
+        <NScrollbar style="max-height: 600px; max-width: 800px; padding:0 20px">
           <Home msg="Sun-Panel" />
         </NScrollbar>
       </div>
@@ -82,8 +82,8 @@ const appName = browser.runtime.getManifest().name
 }
 
 .root{
-  min-width: 400px;
-  max-width: 500px;
+  min-width: 600px;
+  max-width: 800px;
   background-color: #4EB4BC;
 }
 </style>
