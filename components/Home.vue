@@ -1,19 +1,8 @@
 <script lang="ts" setup>
 import { onMounted, ref, toRaw } from 'vue'
 import type { FormInst, FormItemRule } from 'naive-ui'
-import {
-  NAlert,
-  NButton,
-  NCard,
-  NCheckbox,
-  NFlex,
-  NForm,
-  NFormItem,
-  NImage,
-  NInput,
-  NSelect,
-  createDiscreteApi,
-} from 'naive-ui'
+import { NAlert, NButton, NCard, NCheckbox, NFlex, NForm, NFormItem, NImage, NInput, NSelect, NTooltip, createDiscreteApi } from 'naive-ui'
+
 import * as cheerio from 'cheerio'
 import { Md5 } from 'ts-md5'
 import { isValidHttpUrl } from '@/util/verifyRules'
@@ -190,6 +179,7 @@ async function getUrl() {
 
 async function getItemGroupList() {
   recentGroups.value = await storage.getItem<RecentGroup[]>('local:recentGroups') || []
+  console.log('recentGroups', recentGroups.value)
   const url = `${removeTrailingSlash(openApiConfig.value.host)}/itemGroup/getList`
   await postRequest<ListResp<ItemGroupListItem[]>>({
     url,
@@ -371,7 +361,7 @@ async function submit() {
   const targetItemGroup = itemGroupList.value.find(group => group.itemGroupID === formValue.value.itemGroupID)
   if (targetItemGroup) {
     recentGroups.value.push({ groupID: targetItemGroup.itemGroupID, groupName: targetItemGroup.title })
-    if (recentGroups.value.length > 4)
+    while (recentGroups.value.length > 3)
       recentGroups.value.shift()
     await storage.setItem<RecentGroup[]>('local:recentGroups', toRaw(recentGroups.value))
   }
@@ -451,7 +441,7 @@ function handle_message() {
 
 <template>
   <div class="my-2 text-lg font-bold text-zinc-700">
-    <div class="flex items-center">
+    <div class="flex items-center" style="display: none">
       <div>
         {{ t('popup.addCurrentSiteToSunPanel') }}
       </div>
@@ -473,25 +463,26 @@ function handle_message() {
       </NButton> -->
     </div>
   </div>
+  <div style="margin-bottom: 10px">
+    <NAlert v-if="openApiConfig.host === '' || openApiConfig.token === ''" type="error" class="my-2" size="small">
+      {{ t('popup.noSetOpenAPIUrl') }}
+      <div class="text-[blue] cursor-pointer" @click="handleSetting">
+        {{ t('popup.goSet') }}
+      </div>
+    </NAlert>
 
-  <NAlert v-if="openApiConfig.host === '' || openApiConfig.token === ''" type="error" class="my-2" size="small">
-    {{ t('popup.noSetOpenAPIUrl') }}
-    <div class="text-[blue] cursor-pointer" @click="handleSetting">
-      {{ t('popup.goSet') }}
-    </div>
-  </NAlert>
-
-  <NAlert
-    v-if="existedItem != null" type="warning"
-    :title="`${t('common.existed_start')}  ${itemGroupList.find(group => group.itemGroupID === existedItem?.itemGroupID)?.title} ${t('common.existed_end')}`"
-  />
+    <NAlert
+      v-if="existedItem != null" type="warning"
+      :title="`${t('common.existed_start')}  ${itemGroupList.find(group => group.itemGroupID === existedItem?.itemGroupID)?.title} ${t('common.existed_end')}`"
+    />
+  </div>
 
   <NCard style="border-radius: 1rem;margin-bottom: 20px;" size="small" embedded>
     <NForm
       ref="formRef" :label-width="80" :model="formValue" :rules="rules" size="small"
       label-placement="left" require-mark-placement="left"
     >
-      <NFormItem path="itemGroupID">
+      <NFormItem path="itemGroupID" feedback-style="display: none" class="form-item-gap">
         <template #label>
           <NFlex>
             {{ t('popup.itemGroup') }}
@@ -507,42 +498,48 @@ function handle_message() {
             </STip>
           </NFlex>
         </template>
-        <NSelect
-          v-model:value="formValue.itemGroupID"
-          :disabled="sunPanelVersion === '' || !supportedSunPanelVersion('1.7.0', sunPanelVersion)"
-          :options="itemGroupList" label-field="title" value-field="itemGroupID"
-        />
-      </NFormItem>
-
-      <NFormItem v-if="recentGroups.length > 1" path="recentGroups">
-        <NFlex>
-          <template v-for="(group, index) in recentGroups" :key="index">
-            <NButton
-              v-if="group.groupID !== formValue.itemGroupID" strong secondary round type="primary"
-              @click="changeGroup(group.groupID)"
-            >
-              {{ group.groupName }}
-            </NButton>
-          </template>
+        <NFlex vertical style="width: 100%">
+          <NSelect
+            v-model:value="formValue.itemGroupID"
+            :disabled="sunPanelVersion === '' || !supportedSunPanelVersion('1.7.0', sunPanelVersion)"
+            :options="itemGroupList" label-field="title" value-field="itemGroupID"
+          />
+          <NFlex v-if="recentGroups.length > 1" style="width: 100%; margin-top: 8px" justify="center">
+            <template v-for="(group, index) in recentGroups.slice(0).reverse()" :key="index">
+              <NTooltip placement="bottom">
+                <template #trigger>
+                  <slot name="icon">
+                    <NButton strong secondary round size="small" type="primary" @click="changeGroup(group.groupID)">
+                      {{ group.groupName.trim().split(/\s+/).pop() }}
+                    </NButton>
+                  </slot>
+                </template>
+                <slot>
+                  {{ group.groupName }}
+                </slot>
+              </NTooltip>
+            </template>
+          </NFlex>
         </NFlex>
       </NFormItem>
 
-      <NFormItem path="iconUrl">
+      <NFormItem path="iconUrl" feedback-style="display: none" class="form-item-gap">
         <template #label>
           <div class="flex items-center">
             {{ t('popup.iconObtained') }}
           </div>
         </template>
         <div>
-          <div>
+          <NFlex style="max-height: 120px; overflow-y: auto; gap: 5px; padding: 2px">
             <NImage
-              v-for="(icon, index) in webSiteIcons" :key="index" preview-disabled :src="icon.iconUrl"
+              v-for="(icon, index) in webSiteIcons" :key="index" :src="icon.iconUrl"
               class="cursor-pointer"
-              style="width: 50px;height: 50px;border-radius: 5px;margin-right: 10px;padding:2px;box-shadow: 0 0 5px gray;"
-              :style="icon.checked ? 'border:2px #4EB4BC solid;' : 'border:1px #C1C6CC solid;'"
+              :preview-src="icon.iconUrl"
+              style="width: 50px;height: 50px; border-radius: 5px; margin:3px; box-shadow: 0 0 5px gray;"
+              :style="icon.checked ? 'border:3px #4EB4BC solid;' : 'border:1px #C1C6CC solid;'"
               @click="handleSelectIcon(icon)"
             />
-          </div>
+          </NFlex>
           <div class="mt-2">
             <NCheckbox
               v-model:checked="formValue.isSaveIcon"
@@ -572,65 +569,73 @@ function handle_message() {
         </div>
       </NFormItem>
 
-      <NFormItem :label="t('common.title')" path="title">
+      <NFormItem :label="t('common.title')" path="title" feedback-style="display: none" class="form-item-gap">
         <NInput
           v-model:value="formValue.title" size="small"
           :disabled="openApiConfig.host === '' || openApiConfig.token === ''"
         />
       </NFormItem>
 
-      <NFormItem :label="t('common.description')" path="description">
+      <NFormItem :label="t('common.description')" path="description" feedback-style="display: none" class="form-item-gap">
         <NInput
           v-model:value="formValue.description"
           :disabled="openApiConfig.host === '' || openApiConfig.token === ''"
         />
       </NFormItem>
 
-      <NFormItem :label="t('common.defaultAddress')" path="url">
+      <NFormItem :label="t('common.defaultAddress')" path="url" feedback-style="display: none" class="form-item-gap">
         <NInput
           v-model:value="formValue.url"
           :disabled="openApiConfig.host === '' || openApiConfig.token === '' || existedItem != null"
         />
       </NFormItem>
 
-      <NFormItem :label="t('popup.lanAddress')" path="lanUrl">
+      <NFormItem :label="t('popup.lanAddress')" path="lanUrl" feedback-style="display: none" class="form-item-gap">
         <NInput
           v-model:value="formValue.lanUrl"
           :disabled="openApiConfig.host === '' || openApiConfig.token === '' || existedItem != null"
         />
       </NFormItem>
 
-      <NFlex v-if="existedItem != null" justify="center">
-        <NButton
-          size="medium" type="warning" style="width: 48%;"
-          :disabled="isSaveSuccess || openApiConfig.host === '' || openApiConfig.token === ''"
-          :loading="isSubmitLoading"
-          @click="handleSave"
-        >
-          {{ t('common.update') }}
-        </NButton>
-
-        <NButton
-          size="medium" type="error" style="width: 48%;"
-          :disabled="isSaveSuccess || openApiConfig.host === '' || openApiConfig.token === ''"
-          :loading="isDeleteLoading"
-          @click="handleDelete"
-        >
-          {{ t('common.delete') }}
-        </NButton>
-      </NFlex>
-      <NFlex v-else justify="center">
-        <NButton
-          size="medium" type="success" style="width: 100%;"
-          :disabled="isSaveSuccess || openApiConfig.host === '' || openApiConfig.token === ''"
-          :loading="isSubmitLoading"
-          @click="handleSave"
-        >
-          {{ t('common.save') }}
-        </NButton>
-      </NFlex>
+      <div v-if="!isSubmitLoading || !isSaveSuccess || !isDeleteLoading" style="margin-top: 15px;">
+        <NFlex v-if="existedItem != null" justify="center">
+          <NButton
+            size="medium" type="warning" style="width: 48%;"
+            :disabled="isSaveSuccess || openApiConfig.host === '' || openApiConfig.token === ''"
+            :loading="isSubmitLoading"
+            @click="handleSave"
+          >
+            {{ t('common.update') }}
+          </NButton>
+          <NButton
+            size="medium" type="error" style="width: 48%;"
+            :disabled="isDeleteLoading || openApiConfig.host === '' || openApiConfig.token === ''"
+            :loading="isDeleteLoading"
+            @click="handleDelete"
+          >
+            {{ t('common.delete') }}
+          </NButton>
+        </NFlex>
+        <NFlex v-else justify="center">
+          <NButton
+            size="medium" type="success" style="width: 100%;"
+            :disabled="isSaveSuccess || openApiConfig.host === '' || openApiConfig.token === ''"
+            :loading="isSubmitLoading"
+            @click="handleSave"
+          >
+            {{ t('common.save') }}
+          </NButton>
+        </NFlex>
+      </div>
     </NForm>
   </NCard>
 
   <!-- <div>{{ currentUrl }}</div> -->
 </template>
+
+<style scoped>
+.form-item-gap {
+  margin-top: 10px;
+  margin-bottom: 10px;
+}
+</style>

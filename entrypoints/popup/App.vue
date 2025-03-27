@@ -42,7 +42,7 @@ const appName = browser.runtime.getManifest().name
     <div class="root">
       <div class="header flex items-center">
         <div class="text-[#fff]">
-          <span class="text-xl font-bold">
+          <span class="font-bold text-xl">
             {{ appName }}
           </span>
           <span
