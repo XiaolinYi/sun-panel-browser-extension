@@ -265,7 +265,7 @@ function handleImageConvertUrlTest() {
         <div class="text-slate-500 font-bold">
           {{ $t('common.language') }}
         </div>
-        <div class="max-w-[200px]">
+        <div class="mt-[10px] max-w-[200px]">
           <NSelect v-model:value="languageValue" :options="languageOptions" @update-value="handleChangeLanuage" />
         </div>
       </div>
@@ -390,7 +390,7 @@ function handleImageConvertUrlTest() {
       </template>
 
       <NForm ref="optionalSettingsFormRef" :label-width="80" :model="optionalSettingsFormValue" :rules="optionalSettingsFormRules" size="small">
-        <NDivider title-placement="left">
+        <NDivider title-placement="left" style="margin-top: 10px">
           {{ t('settings.miscellaneousServices') }}
         </NDivider>
         <NFormItem path="defaultIconUrl">

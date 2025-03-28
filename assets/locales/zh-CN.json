@@ -97,7 +97,7 @@
     "defaultIconUrl": "默认图标地址",
     "imageConvertService": "图片转换服务",
     "imageConvertUrl": "图像转换服务地址",
-    "guideImageConvert1": "图片转换服务，将通过图标的url进行转换后再传递给 Sun-Panel，确保图标一致性。关键字 iconUrl 为调用时的图标的url。",
+    "guideImageConvert1": "该服务，通过将图标的url进行转换后再传递给 Sun-Panel，确保图标一致性。关键字 iconUrl 为调用时的图标的url。",
     "guideImageConvert2": "例如 thumbor 服务，可设置为： http://server/unsafe/trim/128x128/smart/filters:format(png)/{iconUrl}",
     "connectionTestSuccess": "测试通过，当前自托管的 Sun-Panel 版本号为：{version}，版本序号为：{versionCode}"
   },
