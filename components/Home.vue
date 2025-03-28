@@ -24,6 +24,7 @@ interface OpenAPIConfig {
 
 interface OptionalSettingsConfig {
   imageConvertUrl: string
+  defaultIconUrl: string
 }
 
 interface ImageListItem {
@@ -75,6 +76,7 @@ const openApiConfig = ref<OpenAPIConfig>({
 })
 const optionalSettings = ref<OptionalSettingsConfig>({
   imageConvertUrl: '',
+  defaultIconUrl: '',
 })
 
 const existedItem = ref<ItemResp | null>(null)
@@ -349,7 +351,7 @@ async function getIconAndUrl(html: string) {
     if (webSiteIcons.value.length === 0) {
       const urlObj = new URL(currentUrl.value, currentUrl.value)
       // 没有找到图标使用默认图标
-      const iconUrl = `${urlObj.protocol}//${urlObj.host}/favicon.ico`
+      const iconUrl = optionalSettings.value.defaultIconUrl !== '' ? optionalSettings.value.defaultIconUrl : `${urlObj.protocol}//${urlObj.host}/favicon.ico`
       webSiteIcons.value.push({ iconUrl, checked: true })
       formValue.value.iconUrl = iconUrl
     }

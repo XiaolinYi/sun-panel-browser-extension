@@ -12,5 +12,6 @@ declare namespace BaseType{
 
   interface OptionalSettingsConfig {
     imageConvertUrl: string
+    defaultIconUrl: string
   }
 }

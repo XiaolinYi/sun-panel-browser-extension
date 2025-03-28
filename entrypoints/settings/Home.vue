@@ -37,6 +37,7 @@ const homePageFormValue = ref<HomePageConfig>({
 
 const optionalSettingsFormValue = ref<OptionalSettingsConfig>({
   imageConvertUrl: '',
+  defaultIconUrl: '',
 })
 
 // const appName = browser.runtime.getManifest().name
@@ -103,6 +104,13 @@ const optionalSettingsFormRules = {
     message: t('form.httpUrlIncorrect'),
     validator(rule: FormItemRule, value: string) {
       return value === '' || (isValidHttpUrl(value) && value.includes('{iconUrl}'))
+    },
+  },
+  defaultIconUrl: {
+    trigger: ['input', 'blur'],
+    message: t('form.httpUrlIncorrect'),
+    validator(rule: FormItemRule, value: string) {
+      return value === '' || isValidHttpUrl(value)
     },
   },
 }
@@ -381,18 +389,32 @@ function handleImageConvertUrlTest() {
         {{ t('common.optionalSettings') }}
       </template>
 
-      <div class="my-2">
-        <NAlert type="warning" :title="t('settings.imageConvertService')" size="small">
-          <p class="mt-2">
-            {{ t('settings.guideImageConvert1') }}
-          </p>
-          <p class="mt-2">
-            {{ t('settings.guideImageConvert2', { iconUrl: '{iconUrl}' }) }}
-          </p>
-        </NAlert>
-      </div>
-
       <NForm ref="optionalSettingsFormRef" :label-width="80" :model="optionalSettingsFormValue" :rules="optionalSettingsFormRules" size="small">
+        <NDivider title-placement="left">
+          {{ t('settings.miscellaneousServices') }}
+        </NDivider>
+        <NFormItem path="defaultIconUrl">
+          <template #label>
+            <span class="text-slate-500 font-bold">
+              {{ t('settings.defaultIconUrl') }}
+            </span>
+          </template>
+          <NInput v-model:value="optionalSettingsFormValue.defaultIconUrl" placeholder="https://doc.sun-panel.top/favicon.ico" rows="2" />
+        </NFormItem>
+
+        <NDivider title-placement="left">
+          {{ t('settings.imageConvertService') }}
+        </NDivider>
+        <div class="my-2">
+          <NAlert type="warning" size="small">
+            <p>
+              {{ t('settings.guideImageConvert1') }}
+            </p>
+            <p class="mt-2">
+              {{ t('settings.guideImageConvert2', { iconUrl: '{iconUrl}' }) }}
+            </p>
+          </NAlert>
+        </div>
         <NFormItem path="imageConvertUrl">
           <template #label>
             <span class="text-slate-500 font-bold">

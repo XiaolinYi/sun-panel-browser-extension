@@ -93,6 +93,8 @@
     "openAPINote": "需要 Sun-Panel 版本在 {version}",
     "homePageInIframe": "内嵌框架打开首页（速度快）",
     "guideOpenAPI": "通过 系统应用启动器 -> OpenAPI -> 开启，即可查看到地址和Token，如果地址仅包含域名，还需加路径（路径示例：/openapi/v1）。",
+    "miscellaneousServices": "杂项",
+    "defaultIconUrl": "默认图标地址",
     "imageConvertService": "图片转换服务",
     "imageConvertUrl": "图像转换服务地址",
     "guideImageConvert1": "图片转换服务，将通过图标的url进行转换后再传递给 Sun-Panel，确保图标一致性。关键字 iconUrl 为调用时的图标的url。",
