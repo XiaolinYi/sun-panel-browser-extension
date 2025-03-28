@@ -219,7 +219,7 @@ async function filterSquareImages(fullUrls: string[]) {
   for (const url of fullUrls) {
     try {
       const { width, height } = await getImageDimensions(url)
-      if (isSquareAspect(width, height, 0.5)) {
+      if (width >= 64 && height >= 64 && isSquareAspect(width, height, 0.5)) {
         squareUrls.push(url)
       }
     }
@@ -234,7 +234,8 @@ async function getSquareImgLinks(html: string) {
   const $ = cheerio.load(html)
   const imgElements = $('img')
   const imgUrls = imgElements.map((i, el) => $(el).attr('src') || $(el).attr('data-src')).get()
-  const fullUrls = imgUrls.map(url => parseFullUrl(url, currentUrl.value))
+  let fullUrls = imgUrls.map(url => parseFullUrl(url, currentUrl.value))
+  fullUrls = Array.from(new Set(fullUrls))
   return filterSquareImages(fullUrls)
 }
 
@@ -361,7 +362,7 @@ async function submit() {
   const targetItemGroup = itemGroupList.value.find(group => group.itemGroupID === formValue.value.itemGroupID)
   if (targetItemGroup) {
     recentGroups.value.push({ groupID: targetItemGroup.itemGroupID, groupName: targetItemGroup.title })
-    while (recentGroups.value.length > 3)
+    while (recentGroups.value.length > 4)
       recentGroups.value.shift()
     await storage.setItem<RecentGroup[]>('local:recentGroups', toRaw(recentGroups.value))
   }
