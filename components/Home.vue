@@ -145,6 +145,7 @@ function unwrapWithImageConvertUrl(wrappedUrl: string) {
     const imageConvertUrlParts = optionalSettings.value.imageConvertUrl.split('{iconUrl}')
     if (wrappedUrl.startsWith(imageConvertUrlParts[0])) {
       unwrappedUrl = wrappedUrl.substring(imageConvertUrlParts[0].length, wrappedUrl.length - imageConvertUrlParts[1].length)
+      unwrappedUrl = decodeURIComponent(unwrappedUrl)
     }
   }
   return unwrappedUrl
@@ -155,7 +156,7 @@ function wrapWithImageConvertUrl(unwrappedUrl: string) {
   if (unwrappedUrl !== '' && optionalSettings.value && optionalSettings.value.imageConvertUrl && optionalSettings.value.imageConvertUrl !== '') {
     const imageConvertUrlParts = optionalSettings.value.imageConvertUrl.split('{iconUrl}')
     if (!unwrappedUrl.startsWith(imageConvertUrlParts[0])) {
-      wrappedUrl = optionalSettings.value.imageConvertUrl.replace('{iconUrl}', unwrappedUrl)
+      wrappedUrl = optionalSettings.value.imageConvertUrl.replace('{iconUrl}', encodeURIComponent(unwrappedUrl))
     }
   }
   return wrappedUrl
@@ -248,29 +249,28 @@ async function getImageDimensions(url: string) {
   return { width: img.naturalWidth, height: img.naturalHeight }
 }
 
-async function filterSquareImages(fullUrls: string[]) {
-  const squareUrls: string[] = []
+async function* filterSquareImages(fullUrls: string[]) {
   for (const url of fullUrls) {
     try {
       const { width, height } = await getImageDimensions(url)
       if (width >= 64 && height >= 64 && isSquareAspect(width, height, 0.5)) {
-        squareUrls.push(url)
+        yield url
       }
     }
     catch (error) {
       console.error(`Failed  to load image: ${url}`, error)
     }
   }
-  return squareUrls
 }
 
-async function getSquareImgLinks(html: string) {
+async function* getSquareImgLinks(html: string) {
   const $ = cheerio.load(html)
   const imgElements = $('img')
   const imgUrls = imgElements.map((i, el) => $(el).attr('src') || $(el).attr('data-src')).get()
   let fullUrls = imgUrls.map(url => parseFullUrl(url, currentUrl.value))
+  // fullUrls = fullUrls.map(url => parseNestedUrl(url))
   fullUrls = Array.from(new Set(fullUrls))
-  return filterSquareImages(fullUrls)
+  yield * filterSquareImages(fullUrls)
 }
 
 function getIcoLinks(html: string): string[] {
@@ -308,6 +308,15 @@ async function fetchWebsiteSource(url: string) {
   }
 }
 
+function parseNestedUrl(url: string): string {
+  if (url.lastIndexOf('http') > 0) {
+    const matches = url.match(/http[^&]+/g)
+    // console.log(matches)
+    return matches ? decodeURIComponent(matches[matches.length - 1]) : url
+  }
+  return url
+}
+
 function parseFullUrl(url: string, baseUrl: string): string {
   const urlObj = new URL(url, baseUrl)
 
@@ -339,12 +348,11 @@ async function getIconAndUrl(html: string) {
       // console.log(iconUrl)
     }
 
-    const imgLinks = await getSquareImgLinks(html || '')
-    console.log(imgLinks)
-    for (let i = 0; i < imgLinks.length; i++) {
-      webSiteIcons.value.push({ iconUrl: imgLinks[i], checked: i === 0 && formValue.value.iconUrl != null })
-      if (i === 0 && formValue.value.iconUrl != null) {
-        formValue.value.iconUrl = imgLinks[i]
+    for await (const url of getSquareImgLinks(html)) {
+      console.log('imageUrl', url)
+      webSiteIcons.value.push({ iconUrl: url, checked: webSiteIcons.value.length === 0 && formValue.value.iconUrl != null })
+      if (webSiteIcons.value.length === 1 && formValue.value.iconUrl != null) {
+        formValue.value.iconUrl = url
       }
     }
 
