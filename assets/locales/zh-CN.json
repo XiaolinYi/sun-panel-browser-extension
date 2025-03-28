@@ -68,6 +68,7 @@
     "yes": "是",
     "settings": "设置",
     "newTab": "新标签页",
+    "optionalSettings": "可选配置",
     "enable": "启用",
     "disable": "禁用",
     "defaultAddress": "默认地址",
@@ -92,6 +93,10 @@
     "openAPINote": "需要 Sun-Panel 版本在 {version}",
     "homePageInIframe": "内嵌框架打开首页（速度快）",
     "guideOpenAPI": "通过 系统应用启动器 -> OpenAPI -> 开启，即可查看到地址和Token，如果地址仅包含域名，还需加路径（路径示例：/openapi/v1）。",
+    "imageConvertService": "图片转换服务",
+    "imageConvertUrl": "图像转换服务地址",
+    "guideImageConvert1": "图片转换服务，将通过图标的url进行转换后再传递给 Sun-Panel，确保图标一致性。关键字 iconUrl 为调用时的图标的url。",
+    "guideImageConvert2": "例如 thumbor 服务，可设置为： http://server/unsafe/trim/128x128/smart/filters:format(png)/{iconUrl}",
     "connectionTestSuccess": "测试通过，当前自托管的 Sun-Panel 版本号为：{version}，版本序号为：{versionCode}"
   },
   "homePage": {
@@ -100,6 +105,7 @@
     "currentUrlAddress": "当前为主要地址"
   },
   "popup": {
+    "saveIconFailed": "图片保存失败，请选择其它图片",
     "noSetOpenAPIUrl": "请先配置OpenAPI参数，再尝试添加",
     "goSet": "前往设置",
     "uploadLog": "更新日志&检查新版本",

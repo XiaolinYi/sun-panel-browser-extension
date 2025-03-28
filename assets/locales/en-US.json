@@ -67,6 +67,7 @@
     "warning": "Warning",
     "yes": "Yes",
     "settings": "Setting",
+    "optionalSettings": "Optional Settings",
     "newTab": "New tab",
     "enable": "Enable",
     "disable": "Disable",
@@ -91,6 +92,10 @@
     "openAPINote": "Requires Sun-Panel version in {version}",
     "homePageInIframe": "Open the homepage in an inline frame (fast)",
     "guideOpenAPI": "Through System Application Launcher -> OpenAPI -> Enable, you can view the address and Token. If the address only contains the domain name, you need to add the path (path example: /openapi/v1).",
+    "imageConvertService": "Image Conversion Service (ICS)",
+    "imageConvertUrl": "ICS Url",
+    "guideImageConvert1": "the ICS converts the icon by url then passes it to Sun-Panel to ensure icon consistency. The keyword iconUrl is the icon url when calling.",
+    "guideImageConvert2": "For example, for thumbor service, you can set ICS Url like: http://server/unsafe/trim/128x128/smart/filters:format(png)/{iconUrl}",
     "connectionTestSuccess": "The test passed. The current self-hosted Sun-Panel version number is: {version}, and the version serial number is: {versionCode}"
   },
   "homePage": {
@@ -99,6 +104,7 @@
     "currentUrlAddress": "Currently the main address"
   },
   "popup": {
+    "saveIconFailed": "Failed to save the image, you can choose another image",
     "noSetOpenAPIUrl": "Please configure OpenAPI parameters first, and then try to add",
     "goSet": "Go to settings",
     "uploadLog": "Change log",

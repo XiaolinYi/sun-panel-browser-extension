@@ -9,4 +9,8 @@ declare namespace BaseType{
     spareUrl: string
     homePageInIframe: boolean
   }
+
+  interface OptionalSettingsConfig {
+    imageConvertUrl: string
+  }
 }

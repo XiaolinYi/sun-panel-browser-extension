@@ -22,6 +22,10 @@ interface OpenAPIConfig {
   token: string
 }
 
+interface OptionalSettingsConfig {
+  imageConvertUrl: string
+}
+
 interface ImageListItem {
   iconUrl: string
   checked: boolean
@@ -60,8 +64,8 @@ const ms = createDiscreteApi(['message'])
 const currentUrl = ref('')
 const webSiteIcons = ref<ImageListItem[]>([])
 const isSubmitLoading = ref(false)
-const isDeleteLoading = ref(false)
 const isSaveSuccess = ref(false)
+const isDeleteSuccess = ref(false)
 const itemGroupList = ref<ItemGroupListItem[]>([])
 const recentGroups = ref<RecentGroup[]>([])
 const sunPanelVersion = ref('')
@@ -69,6 +73,10 @@ const openApiConfig = ref<OpenAPIConfig>({
   host: '',
   token: '',
 })
+const optionalSettings = ref<OptionalSettingsConfig>({
+  imageConvertUrl: '',
+})
+
 const existedItem = ref<ItemResp | null>(null)
 const formValue = ref({
   title: '',
@@ -129,6 +137,28 @@ function handleSetting() {
   browser.tabs.create({ url: 'settings.html' })
 }
 
+function unwrapWithImageConvertUrl(wrappedUrl: string) {
+  let unwrappedUrl = wrappedUrl
+  if (wrappedUrl !== '' && optionalSettings.value && optionalSettings.value.imageConvertUrl && optionalSettings.value.imageConvertUrl !== '') {
+    const imageConvertUrlParts = optionalSettings.value.imageConvertUrl.split('{iconUrl}')
+    if (wrappedUrl.startsWith(imageConvertUrlParts[0])) {
+      unwrappedUrl = wrappedUrl.substring(imageConvertUrlParts[0].length, wrappedUrl.length - imageConvertUrlParts[1].length)
+    }
+  }
+  return unwrappedUrl
+}
+
+function wrapWithImageConvertUrl(unwrappedUrl: string) {
+  let wrappedUrl = unwrappedUrl
+  if (unwrappedUrl !== '' && optionalSettings.value && optionalSettings.value.imageConvertUrl && optionalSettings.value.imageConvertUrl !== '') {
+    const imageConvertUrlParts = optionalSettings.value.imageConvertUrl.split('{iconUrl}')
+    if (!unwrappedUrl.startsWith(imageConvertUrlParts[0])) {
+      wrappedUrl = optionalSettings.value.imageConvertUrl.replace('{iconUrl}', unwrappedUrl)
+    }
+  }
+  return wrappedUrl
+}
+
 async function getUrl() {
   // browser.tabs.query
   // currentUrl.value = window.location.href;
@@ -157,6 +187,7 @@ async function getUrl() {
       },
     }).then(({ data }) => {
       existedItem.value = data
+      existedItem.value.iconUrl = unwrapWithImageConvertUrl(existedItem.value.iconUrl)
       formValue.value.title = existedItem.value.title
       formValue.value.iconUrl = existedItem.value.iconUrl
       formValue.value.onlyName = existedItem.value.onlyName
@@ -166,6 +197,7 @@ async function getUrl() {
       formValue.value.itemGroupID = existedItem.value.itemGroupID
     }).catch((res) => {
       if (res.code === 1203) {
+        // 无记录, 不用提示
         return
       }
       if (res.code === 1000) {
@@ -305,14 +337,6 @@ async function getIconAndUrl(html: string) {
       // console.log(iconUrl)
     }
 
-    if (icons.length === 0) {
-      const urlObj = new URL(currentUrl.value, currentUrl.value)
-      // 没有找到图标使用默认图标
-      const iconUrl = `${urlObj.protocol}//${urlObj.host}/favicon.ico`
-      webSiteIcons.value.push({ iconUrl, checked: true })
-      formValue.value.iconUrl = iconUrl
-    }
-
     const imgLinks = await getSquareImgLinks(html || '')
     console.log(imgLinks)
     for (let i = 0; i < imgLinks.length; i++) {
@@ -320,6 +344,14 @@ async function getIconAndUrl(html: string) {
       if (i === 0 && formValue.value.iconUrl != null) {
         formValue.value.iconUrl = imgLinks[i]
       }
+    }
+
+    if (webSiteIcons.value.length === 0) {
+      const urlObj = new URL(currentUrl.value, currentUrl.value)
+      // 没有找到图标使用默认图标
+      const iconUrl = `${urlObj.protocol}//${urlObj.host}/favicon.ico`
+      webSiteIcons.value.push({ iconUrl, checked: true })
+      formValue.value.iconUrl = iconUrl
     }
   }
 }
@@ -340,7 +372,8 @@ async function submit() {
   // 没有找到图标使用默认图标
   const url = `${removeTrailingSlash(openApiConfig.value.host)}/item/${existedItem.value == null ? 'create' : 'update'}`
   isSubmitLoading.value = true
-  // TODO 需要一个图像转换服务, 例如ico转换为png, 最佳方案是全部转换为png
+  // 包裹图像转换服务
+  formValue.value.iconUrl = wrapWithImageConvertUrl(formValue.value.iconUrl)
   // 唯一名称
   formValue.value.onlyName = Md5.hashStr(formValue.value.url)
   await postRequest({
@@ -355,28 +388,37 @@ async function submit() {
       ms.message.error(t('popup.tokenInvalid'))
       return
     }
+    else if (res.code === -1) {
+      if ((res.msg as string).startsWith('failed to save icon file')) {
+        ms.message.error(t('popup.saveIconFailed'))
+      }
+      else {
+        ms.message.error(res.msg)
+      }
+      return
+    }
     ms.message.error(`${t('popup.tokenInvalid')}-2000`)
   })
-  if (recentGroups.value.map(group => group.groupID).includes(formValue.value.itemGroupID))
-    return
-  const targetItemGroup = itemGroupList.value.find(group => group.itemGroupID === formValue.value.itemGroupID)
-  if (targetItemGroup) {
-    recentGroups.value.push({ groupID: targetItemGroup.itemGroupID, groupName: targetItemGroup.title })
-    while (recentGroups.value.length > 4)
-      recentGroups.value.shift()
-    await storage.setItem<RecentGroup[]>('local:recentGroups', toRaw(recentGroups.value))
+  if (!recentGroups.value.map(group => group.groupID).includes(formValue.value.itemGroupID)) {
+    const targetItemGroup = itemGroupList.value.find(group => group.itemGroupID === formValue.value.itemGroupID)
+    if (targetItemGroup) {
+      recentGroups.value.push({ groupID: targetItemGroup.itemGroupID, groupName: targetItemGroup.title })
+      while (recentGroups.value.length > 4)
+        recentGroups.value.shift()
+      await storage.setItem<RecentGroup[]>('local:recentGroups', toRaw(recentGroups.value))
+    }
   }
   isSubmitLoading.value = false
 }
 
 function handleDelete(e: MouseEvent) {
   e.preventDefault()
-  isDeleteLoading.value = true
+  isSubmitLoading.value = true
 
   // TODO 服务端没有删除接口
   ms.message.error(t('暂不支持'))
 
-  isDeleteLoading.value = false
+  isSubmitLoading.value = false
 }
 
 function handleSave(e: MouseEvent) {
@@ -396,6 +438,12 @@ onMounted(async () => {
   await storage.getItem<OpenAPIConfig>('local:openAPIConfig').then((cfg) => {
     if (cfg) {
       openApiConfig.value = cfg as OpenAPIConfig
+    }
+  })
+
+  await storage.getItem<OptionalSettingsConfig>('local:optionalSettings').then((cfg) => {
+    if (cfg) {
+      optionalSettings.value = cfg as OptionalSettingsConfig
     }
   })
 
@@ -598,7 +646,7 @@ function handle_message() {
         />
       </NFormItem>
 
-      <div v-if="!isSubmitLoading || !isSaveSuccess || !isDeleteLoading" style="margin-top: 15px;">
+      <div v-if="!isSubmitLoading || !isSaveSuccess || !isDeleteSuccess" style="margin-top: 15px;">
         <NFlex v-if="existedItem != null" justify="center">
           <NButton
             size="medium" type="warning" style="width: 48%;"
@@ -610,8 +658,8 @@ function handle_message() {
           </NButton>
           <NButton
             size="medium" type="error" style="width: 48%;"
-            :disabled="isDeleteLoading || openApiConfig.host === '' || openApiConfig.token === ''"
-            :loading="isDeleteLoading"
+            :disabled="isDeleteSuccess || openApiConfig.host === '' || openApiConfig.token === ''"
+            :loading="isSubmitLoading"
             @click="handleDelete"
           >
             {{ t('common.delete') }}

@@ -11,10 +11,15 @@ import { removeTrailingSlash } from '@/util/cmn'
 
 const { t, locale } = useI18n()
 
+const sunPanelIconUrl = 'https://doc.sun-panel.top/favicon.ico'
+
 interface OpenAPIConfig extends BaseType.OpenAPIConfig {
 }
 
 interface HomePageConfig extends BaseType.HomePageConfig {
+}
+
+interface OptionalSettingsConfig extends BaseType.OptionalSettingsConfig {
 }
 
 const ms = createDiscreteApi(['message', 'dialog'])
@@ -28,6 +33,10 @@ const homePageFormValue = ref<HomePageConfig>({
   url: '',
   spareUrl: '',
   homePageInIframe: false,
+})
+
+const optionalSettingsFormValue = ref<OptionalSettingsConfig>({
+  imageConvertUrl: '',
 })
 
 // const appName = browser.runtime.getManifest().name
@@ -88,8 +97,19 @@ const homePageRules = {
   },
 }
 
+const optionalSettingsFormRules = {
+  imageConvertUrl: {
+    trigger: ['input', 'blur'],
+    message: t('form.httpUrlIncorrect'),
+    validator(rule: FormItemRule, value: string) {
+      return value === '' || (isValidHttpUrl(value) && value.includes('{iconUrl}'))
+    },
+  },
+}
+
 const openApiFormRef = ref<FormInst | null>(null)
 const homePageFormRef = ref<FormInst | null>(null)
+const optionalSettingsFormRef = ref<FormInst | null>(null)
 const languageValue = ref(appStore.language)
 // const themeValue = ref(appStore.theme)
 
@@ -125,6 +145,12 @@ function getConfig() {
   storage.getItem<OpenAPIConfig>('local:openAPIConfig').then((cfg) => {
     if (cfg) {
       openApiFormValue.value = cfg as OpenAPIConfig
+    }
+  })
+
+  storage.getItem<OptionalSettingsConfig>('local:optionalSettings').then((cfg) => {
+    if (cfg) {
+      optionalSettingsFormValue.value = cfg as OptionalSettingsConfig
     }
   })
 }
@@ -165,6 +191,24 @@ function handleSaveOpenAPIConfig(e: MouseEvent) {
   })
 }
 
+function handleSaveOptionalSettingsFormConfig(e: MouseEvent) {
+  e.preventDefault()
+  optionalSettingsFormRef.value?.validate((errors) => {
+    if (!errors) {
+      storage.setItem('local:optionalSettings', { ...optionalSettingsFormValue.value }).then(() => {
+        ms.message.success(t('common.saveSuccess'))
+      }).catch((err) => {
+        ms.message.error(t('common.saveFail'))
+        console.error(err)
+      })
+    }
+    else {
+      console.error(errors)
+      ms.message.error(t('form.error'))
+    }
+  })
+}
+
 function handleChangeLanuage(value: Language) {
   languageValue.value = value
   locale.value = value
@@ -186,6 +230,11 @@ function handleConnectionTest() {
     console.error(err)
   })
 }
+
+function handleImageConvertUrlTest() {
+  browser.tabs.create({ url: optionalSettingsFormValue.value.imageConvertUrl.replace('{iconUrl}', sunPanelIconUrl) })
+}
+
 // function handleChangeTheme(value: Theme) {
 //   themeValue.value = value
 //   appStore.setTheme(value)
@@ -321,6 +370,45 @@ function handleConnectionTest() {
 
         <NFormItem>
           <NButton attr-type="button" type="success" @click="handleSaveOpenAPIConfig">
+            {{ t('common.save') }}
+          </NButton>
+        </NFormItem>
+      </NForm>
+    </NCard>
+
+    <NCard style="border-radius: 1rem;margin-top: 10px;">
+      <template #header>
+        {{ t('common.optionalSettings') }}
+      </template>
+
+      <div class="my-2">
+        <NAlert type="warning" :title="t('settings.imageConvertService')" size="small">
+          <p class="mt-2">
+            {{ t('settings.guideImageConvert1') }}
+          </p>
+          <p class="mt-2">
+            {{ t('settings.guideImageConvert2', { iconUrl: '{iconUrl}' }) }}
+          </p>
+        </NAlert>
+      </div>
+
+      <NForm ref="optionalSettingsFormRef" :label-width="80" :model="optionalSettingsFormValue" :rules="optionalSettingsFormRules" size="small">
+        <NFormItem path="imageConvertUrl">
+          <template #label>
+            <span class="text-slate-500 font-bold">
+              {{ t('settings.imageConvertUrl') }}
+            </span>
+            <span class="text-slate-400">
+              (eg: https://xxx.com/convert/128x128/{iconUrl})
+            </span>
+          </template>
+          <NInput v-model:value="optionalSettingsFormValue.imageConvertUrl" type="textarea" rows="2" />
+          <NButton attr-type="button" type="info" :disabled="optionalSettingsFormValue.imageConvertUrl === ''" @click="handleImageConvertUrlTest">
+            {{ t('common.connectionTest') }}
+          </NButton>
+        </NFormItem>
+        <NFormItem>
+          <NButton attr-type="button" type="success" @click="handleSaveOptionalSettingsFormConfig">
             {{ t('common.save') }}
           </NButton>
         </NFormItem>
